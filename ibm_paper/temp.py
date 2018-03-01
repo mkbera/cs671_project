@@ -1,7 +1,11 @@
-from getVector import *
+from preprocess import *
 
-a=getWord2Vector("i am a rat")
+a = get_features()
 
-b=getModWvec(a)
+q1 = a[:, 0]
+q2 = a[:, 1]
+label = a[:, 2]
 
-print(b)
+print(q1)
+print(q2)
+print(label)
