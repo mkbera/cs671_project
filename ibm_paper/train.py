@@ -68,6 +68,7 @@ def train_neural_network(x1, x2):
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
 		saver = tf.train.Saver()
+
 		for epoch in range(hm_epochs):
 			epoch_loss = 0
 
