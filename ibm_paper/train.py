@@ -1,15 +1,16 @@
 import tensorflow as tf
 import numpy as np
-from preprocess import *
+# from preprocess import *
 
 
-features = get_features("../../cs671_project_data/quora_train.tsv")
+features = np.load("../../cs671_project_data/vecs_train.npy")
+print(features.shape)
 
 train_q1 = features[:, 0]
 train_q2 = features[:, 1]
 train_label = features[:, 2]
 
-n_nodes_hl1 = 500
+n_nodes_hl1 = 300
 
 batch_size = 1
 
@@ -22,20 +23,11 @@ def neural_network_model(data1, data2):
 	hidden_1_layer = {'weights' : tf.Variable(tf.random_normal([train_q1[0].shape[0], n_nodes_hl1])),
 	                   'biases' : tf.Variable(tf.random_normal([n_nodes_hl1]))}
 
-	
-	
-
-	# output_layer = {'weights' : tf.Variable(tf.random_normal([n_nodes_hl3, n_classes])),
-	#                    'biases' : tf.Variable(tf.random_normal([n_classes]))}
-
-
 	l1_1 = tf.add(tf.matmul(data1, hidden_1_layer['weights']), hidden_1_layer['biases'])
 	l1_2 = tf.add(tf.matmul(data2, hidden_1_layer['weights']), hidden_1_layer['biases'])
 
-############################
 	l1_1 = tf.nn.tanh(l1_1)
 	l1_2 = tf.nn.tanh(l1_2)
-############################
 	
 	r_q1 = tf.reduce_sum(l1_1, axis = 0)
 	r_q2 = tf.reduce_sum(l1_2, axis = 0)
@@ -47,24 +39,21 @@ def neural_network_model(data1, data2):
 	normalize_b = tf.nn.l2_normalize(r_q2,0)
 	cos_similarity=tf.reduce_sum(tf.multiply(normalize_a,normalize_b))
 	
-	
 	output = cos_similarity
 	return output
-
-
 
 def train_neural_network(x1, x2):
 
 	output_label = neural_network_model(x1, x2)
 
-	cost = tf.losses.mean_squared_error(y, output_label)
+	cost = tf.losses.mean_squared_error(2*y-1, output_label)
 
-	optimizer = tf.train.AdamOptimizer().minimize(cost)
+	optimizer = tf.train.AdagradOptimizer(learning_rate=5).minimize(cost)
 
 	hm_epochs = 10
 
 	
-
+	ckpt_token = 1
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
 		saver = tf.train.Saver()
@@ -82,15 +71,27 @@ def train_neural_network(x1, x2):
 
 				# print(epoch_q1.shape, epoch_q2.shape, epoch_label.shape)
 				# exit()
-				_, c = sess.run([optimizer, cost], feed_dict={x1:epoch_q1, x2: epoch_q2, y: epoch_label})
+				_, c, _label = sess.run([optimizer, cost, output_label], feed_dict={x1:epoch_q1, x2: epoch_q2, y: epoch_label})
 
 				epoch_loss += c
 				i += batch_size
 
-				if i%90 == 0:
-					save_path = saver.save(sess, "./model_checkpoint.ckpt")
-					file = open("train.ckpt.log", 'w')
-					file.write("Epoch:" + str(epoch) + " ckpt:" + str(i))
+				# if epoch_label == 1:
+				# 	print("epoch label = " + str(epoch_label) + "; predicted label = " + str(_label))
+
+				if i%45000 == 0:
+					if ckpt_token == 1:
+						save_path = saver.save(sess, "./model_checkpoint_pos.ckpt")
+						file = open("train.ckpt_pos.log", 'w')
+						file.write("Epoch:" + str(epoch) + " ckpt:" + str(i))
+						file.close()
+					else:
+						save_path = saver.save(sess, "./model_checkpoint_neg.ckpt")
+						file = open("train.ckpt_neg.log", 'w')
+						file.write("Epoch:" + str(epoch) + " ckpt:" + str(i))
+						file.close()
+				
+					ckpt_token = -ckpt_token
 
 			print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
 
@@ -104,5 +105,62 @@ def train_neural_network(x1, x2):
 		# print('Accuracy:', accuracy.eval({x:test_x, y:test_y}))
 
 
+def feed_forward_nn():
+	start = 0
+	data1 = np.array(train_q1[start]).transpose()
+	data2 = np.array(train_q2[start]).transpose()
+	# print(data1.shape)
+	W = np.random.randn(train_q1[0].shape[0], n_nodes_hl1)
+	print("W.shape"),
+	print(W.shape)
+	b = np.random.randn(n_nodes_hl1)
+	print("b.shape"),
+	print(b.shape)
 
+	l1_1 = np.matmul(data1, W)+ b
+	print("l1_1.shape")
+	print(l1_1.shape)
+	l1_2 = np.matmul(data2, W)+ b
+	print("l1_2.shape")
+	print(l1_2.shape)
+	
+	l1_1 = np.tanh(l1_1)
+	print("l1_1.shape")
+	print(l1_1.shape)
+	l1_2 = np.tanh(l1_2)
+	print("l1_2.shape")
+	print(l1_2.shape)
+
+	r_q1 = np.sum(l1_1, axis = 0)
+	print("r_q1.shape")
+	print(r_q1.shape)
+	r_q2 = np.sum(l1_2, axis = 0)
+	print("r_q2.shape")
+	print(r_q2.shape)
+	
+	r_q1 = np.tanh(r_q1)
+	print("r_q1.shape")
+	print(r_q1.shape)
+	r_q2 = np.tanh(r_q2)
+	print("r_q2.shape")
+	print(r_q2.shape)
+
+	normalize_a = r_q1/np.linalg.norm(r_q1,axis=0)
+	print("normalize_a.shape")
+	print(normalize_a.shape)
+	normalize_b = r_q2/np.linalg.norm(r_q2,axis=0)
+	print("normalize_b.shape")
+	print(normalize_b.shape)
+
+	cos_similarity=np.sum(np.multiply(normalize_a,normalize_b))
+	
+	output = cos_similarity
+	print("cos_similarity.shape")
+	print(cos_similarity.shape)
+	return output
+
+	
 train_neural_network(x1, x2)
+# print("ROG")
+# print(feed_forward_nn(),train_label[0])
+

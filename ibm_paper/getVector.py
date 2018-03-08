@@ -3,16 +3,21 @@ import nltk
 import numpy as np
 
 
-Word2Vec_word_vectors = KeyedVectors.load_word2vec_format('../../cs671_project_data/Glove.txt', binary=False)
+Word2Vec_word_vectors = KeyedVectors.load_word2vec_format('../../cs671_project_data/word2vec.bin', binary=True)
 
 
 def getWord2Vector(s):
 	words = nltk.word_tokenize(s)
 	ret=[]
+	# print(words)
 	for w in words:
 		if(w in Word2Vec_word_vectors.vocab):
 			ret.append(Word2Vec_word_vectors[w])
+		else:
+			pass
+			# print("ignoring", w)
 
+	# print(len(ret))
 	return ret
 
 
@@ -53,7 +58,7 @@ def getModWvec(wveclist, k=3):
 
 		qmat[:, i] = z
 
-
+	# print(qmat.shape)
 	return qmat			
 
 

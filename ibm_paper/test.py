@@ -1,15 +1,14 @@
 import tensorflow as tf
 import numpy as np
-from preprocess import *
 
 
-features = get_features("../../cs671_project_data/quora10.tsv")
+features = np.load("../../cs671_project_data/vecs_validation.npy")
 
 test_q1 = features[:, 0]
 test_q2 = features[:, 1]
 test_label = features[:, 2]
 
-n_nodes_hl1 = 500
+n_nodes_hl1 = 300
 
 batch_size = 1
 
@@ -73,19 +72,26 @@ def test_neural_network(x1, x2):
 			epoch_label = test_label[start]
 
 			prediction = sess.run([output_label], feed_dict={x1:epoch_q1, x2: epoch_q2})
-
+			prediction = np.squeeze(prediction)
+			# with open("temppred", 'w') as f:
+			# 	f.write(prediction)
+			# print("epoch label = " + str(epoch_label) + "; predicted label = " + str(prediction))
 			i += batch_size
 			if epoch_label == 1:
-				if prediction > 0.5:
+				# print("mark 1")
+				if prediction >= 0.005:
+					# print("mark 1.1")
 					count += 1
 			else:
-				if prediction <= 0.5:
+				# print("mark 2")
+				if prediction < 0.005:
+					# print("mark 2.2")
 					count += 1
 
 
 
 
-		print('Accuracy:', (count*1.0)/len(test_q1))
+		print('Accuracy:', count, len(test_q1),(count*1.0)/len(test_q1))
 
 
 
