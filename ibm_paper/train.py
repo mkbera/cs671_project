@@ -1,19 +1,19 @@
 import tensorflow as tf
 import numpy as np
-# from preprocess import *
 
 
-features = np.load("../../cs671_project_data/vecs_train.npy")
-print(features.shape)
+features = np.load("../../cs671_project_data/vecs_validation.npy")
+#print(features.shape)
 
 train_q1 = features[:, 0]
 train_q2 = features[:, 1]
 train_label = features[:, 2]
 
-n_nodes_hl1 = 300
+n_nodes_hl1 = 500
+gamma=10
 
 batch_size = 1
-
+epsilon=0.0001234
 x1 = tf.placeholder('float')
 x2 = tf.placeholder('float')
 y = tf.placeholder('float')
@@ -38,25 +38,28 @@ def neural_network_model(data1, data2):
 	normalize_a = tf.nn.l2_normalize(r_q1,0)        
 	normalize_b = tf.nn.l2_normalize(r_q2,0)
 	cos_similarity=tf.reduce_sum(tf.multiply(normalize_a,normalize_b))
-	
-	output = cos_similarity
+	output =   tf.sigmoid(gamma*cos_similarity)
 	return output
 
 def train_neural_network(x1, x2):
 
 	output_label = neural_network_model(x1, x2)
-
-	cost = tf.losses.mean_squared_error(2*y-1, output_label)
+	
+	cost = tf.reduce_mean(-1*y*tf.log(output_label+epsilon) -1*(1-y)*tf.log(1-output_label+epsilon))
 
 	optimizer = tf.train.AdagradOptimizer(learning_rate=5).minimize(cost)
 
-	hm_epochs = 10
+	hm_epochs = 50
+
+	config = tf.ConfigProto()
+	config.gpu_options.allow_growth = True
 
 	
 	ckpt_token = 1
-	with tf.Session() as sess:
+	with tf.Session(config=config) as sess:
 		sess.run(tf.global_variables_initializer())
 		saver = tf.train.Saver()
+		#saver.restore(sess, "./model.ckpt")
 
 		for epoch in range(hm_epochs):
 			epoch_loss = 0
@@ -69,10 +72,10 @@ def train_neural_network(x1, x2):
 				epoch_q2 = np.array(train_q2[start]).transpose()
 				epoch_label = train_label[start]
 
-				# print(epoch_q1.shape, epoch_q2.shape, epoch_label.shape)
+				#print(epoch_q1.shape, epoch_q2.shape, epoch_label.shape)
 				# exit()
 				_, c, _label = sess.run([optimizer, cost, output_label], feed_dict={x1:epoch_q1, x2: epoch_q2, y: epoch_label})
-
+				print(_label, epoch_label, c)
 				epoch_loss += c
 				i += batch_size
 
@@ -93,7 +96,11 @@ def train_neural_network(x1, x2):
 				
 					ckpt_token = -ckpt_token
 
+			
+
+			print("****************************************************************************")
 			print('Epoch', epoch, 'completed out of', hm_epochs, 'loss:', epoch_loss)
+			print("****************************************************************************")
 
 
 		save_path = saver.save(sess, "./model.ckpt") 
@@ -161,6 +168,4 @@ def feed_forward_nn():
 
 	
 train_neural_network(x1, x2)
-# print("ROG")
-# print(feed_forward_nn(),train_label[0])
 
