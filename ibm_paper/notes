@@ -1,6 +1,0 @@
-try kernel and in log check positivity to avoid nan
-try the current with different values of gammma
-try different thresholds
-try different number of nodes in hidden layer
-try different learning rates
-
